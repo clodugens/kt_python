@@ -1,0 +1,176 @@
+import tkinter as tk
+from tkinter import ttk, messagebox
+import datetime
+import os
+
+class TodoApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("ToDo-менеджер")
+        self.root.geometry("700x500")
+        self.root.configure(bg="#f0f0f0")
+        
+        self.tasks_file = "tasks.txt"
+        
+        self.colors = {
+            "overdue": "#ff6b6b",
+            "today": "#ffd93d",
+            "future": "#a0a0a0"
+        }
+        
+        self.setup_ui()
+        self.load_tasks()
+        self.refresh_display()
+    
+    def setup_ui(self):
+        self.top_frame = tk.Frame(self.root, bg="#2c3e50", height=80)
+        self.top_frame.pack(fill="x", padx=10, pady=(10, 5))
+        self.top_frame.pack_propagate(False)
+        
+        self.date_label = tk.Label(
+            self.top_frame,
+            text=f"Сегодня: {datetime.date.today().strftime('%d.%m.%Y')}",
+            font=("Arial", 16, "bold"),
+            bg="#2c3e50",
+            fg="white"
+        )
+        self.date_label.pack(pady=20)
+        
+        self.main_frame = tk.Frame(self.root, bg="#f0f0f0")
+        self.main_frame.pack(fill="both", expand=True, padx=10, pady=5)
+        
+        self.tree_frame = tk.Frame(self.main_frame)
+        self.tree_frame.pack(fill="both", expand=True)
+        
+        self.scroll_y = tk.Scrollbar(self.tree_frame, orient="vertical")
+        self.scroll_x = tk.Scrollbar(self.tree_frame, orient="horizontal")
+        
+        self.tree = ttk.Treeview(
+            self.tree_frame,
+            columns=("status", "date", "task"),
+            show="headings",
+            yscrollcommand=self.scroll_y.set,
+            xscrollcommand=self.scroll_x.set
+        )
+        
+        self.tree.heading("status", text="Статус")
+        self.tree.heading("date", text="Дата")
+        self.tree.heading("task", text="Задача")
+        
+        self.tree.column("status", width=100, anchor="center")
+        self.tree.column("date", width=120, anchor="center")
+        self.tree.column("task", width=450, anchor="w")
+        
+        self.scroll_y.config(command=self.tree.yview)
+        self.scroll_x.config(command=self.tree.xview)
+        
+        self.tree.grid(row=0, column=0, sticky="nsew")
+        self.scroll_y.grid(row=0, column=1, sticky="ns")
+        self.scroll_x.grid(row=1, column=0, sticky="ew")
+        
+        self.tree_frame.grid_rowconfigure(0, weight=1)
+        self.tree_frame.grid_columnconfigure(0, weight=1)
+        
+        self.bottom_frame = tk.Frame(self.root, bg="#f0f0f0")
+        self.bottom_frame.pack(fill="x", padx=10, pady=10)
+        
+        tk.Button(
+            self.bottom_frame,
+            text="Обновить",
+            command=self.refresh_display,
+            bg="#95a5a6",
+            fg="white",
+            font=("Arial", 10, "bold"),
+            padx=20,
+            pady=5
+        ).pack(side="left", padx=5)
+        
+        self.legend_frame = tk.Frame(self.root, bg="#f0f0f0")
+        self.legend_frame.pack(fill="x", padx=10, pady=(0, 10))
+        
+        tk.Label(self.legend_frame, text="Цветовая легенда:", font=("Arial", 9, "bold"), bg="#f0f0f0").pack(side="left", padx=10)
+        tk.Label(self.legend_frame, text="Просроченные", bg=self.colors["overdue"], fg="white", padx=10, pady=2).pack(side="left", padx=5)
+        tk.Label(self.legend_frame, text="Сегодня", bg=self.colors["today"], fg="black", padx=10, pady=2).pack(side="left", padx=5)
+        tk.Label(self.legend_frame, text="Будущие", bg=self.colors["future"], fg="white", padx=10, pady=2).pack(side="left", padx=5)
+    
+    def load_tasks(self):
+        self.tasks = []
+        if not os.path.exists(self.tasks_file):
+            messagebox.showwarning(f"Файл {self.tasks_file} не существует")
+            return
+        
+        with open(self.tasks_file, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                parts = line.split("|")
+                if len(parts) == 2:
+                    date_str, title = parts[0].strip(), parts[1].strip()
+                    try:
+                        date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+                        self.tasks.append((date, title))
+                    except ValueError:
+                        print(f"Ошибка формата даты: {line}")
+    
+    def get_task_status(self, date):
+        today = datetime.date.today()
+        if date < today:
+            return "Просрочена"
+        elif date == today:
+            return "Сегодня"
+        else:
+            return "Будущая"
+    
+    def get_task_color(self, date):
+        today = datetime.date.today()
+        if date < today:
+            return self.colors["overdue"]
+        elif date == today:
+            return self.colors["today"]
+        else:
+            return self.colors["future"]
+    
+    def refresh_display(self):
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        
+        self.load_tasks()
+        
+        sorted_tasks = sorted(self.tasks, key=lambda x: x[0])
+        
+        for date, title in sorted_tasks:
+            status = self.get_task_status(date)
+            color = self.get_task_color(date)
+            
+            item_id = self.tree.insert("", "end", values=(status, date.strftime("%d.%m.%Y"), title))
+            self.tree.tag_configure(f"color_{item_id}", background=color, foreground="black" if color == self.colors["today"] else "white")
+            self.tree.item(item_id, tags=(f"color_{item_id}",))
+        
+        overdue_count = sum(1 for d, _ in self.tasks if d < datetime.date.today())
+        today_count = sum(1 for d, _ in self.tasks if d == datetime.date.today())
+        future_count = sum(1 for d, _ in self.tasks if d > datetime.date.today())
+        
+        self.legend_frame.destroy()
+        self.legend_frame = tk.Frame(self.root, bg="#f0f0f0")
+        self.legend_frame.pack(fill="x", padx=10, pady=(0, 10))
+        
+        tk.Label(self.legend_frame, text=f"Итого: {len(self.tasks)} задач | ", font=("Arial", 9), bg="#f0f0f0").pack(side="left", padx=10)
+        tk.Label(self.legend_frame, text=f"Просрочено: {overdue_count}", bg=self.colors["overdue"], fg="white", padx=10, pady=2).pack(side="left", padx=5)
+        tk.Label(self.legend_frame, text=f"На сегодня: {today_count}", bg=self.colors["today"], fg="black", padx=10, pady=2).pack(side="left", padx=5)
+        tk.Label(self.legend_frame, text=f"Будущие: {future_count}", bg=self.colors["future"], fg="white", padx=10, pady=2).pack(side="left", padx=5)
+
+root = tk.Tk()
+app = TodoApp(root)
+root.mainloop()
+
+2025-06-01 | Крутая лаба
+2025-06-02 | Что-то произойдёт
+2025-08-01 | Окончание карантина
+2025-11-20 | Начало следующего семестра
+2026-06-10 | Скоро экзамен
+2027-12-01 | Навестить бабушку
+2027-12-15 | Сходить в кино
+2028-02-01 | Новый 2028 год
+2028-02-12 | Пришельцы атакуют Землю
+2028-07-01 | Надо сдать лабу
