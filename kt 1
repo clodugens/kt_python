@@ -1,0 +1,22 @@
+import random
+answer = ''
+numerator = 0
+running = True
+print('ЧЕГО СКАЗАТЬ-ТО ХОТЕЛ, МИЛОК?!')
+while running:
+n = random.randint(1930, 1950)
+grans1 = 'АСЬ?! ГОВОРИ ГРОМЧЕ, ВНУЧЕК!'
+grans2 = f'НЕТ, НИ РАЗУ С {n} ГОДА!'
+grans3 ='ДО СВИДАНИЯ, МИЛЫЙ!'
+answer = input()
+if answer == 'ПОКА':
+numerator +=1
+else:
+numerator = 0
+if numerator == 3:
+print(grans3)
+break
+if answer.isupper():
+print(grans2)
+else:
+print(grans1)
