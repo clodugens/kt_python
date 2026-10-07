@@ -1,0 +1,242 @@
+import os
+import random
+
+GALLOWS_FRAMES = {}
+WORD_LIST = []
+HINT_LIST = []
+CURRENT_WORD = ""
+CURRENT_HINT = ""
+GUESSED_LETTERS = []
+MISTAKES = 0
+MAX_MISTAKES = 6
+GAME_OVER = False
+GAME_WON = False
+
+
+def load_gallows_frames():
+    frame_paths = [
+        "stage_0.txt",
+        "stage_1.txt",
+        "stage_2.txt",
+        "stage_3.txt",
+        "stage_4.txt",
+        "stage_5.txt",
+        "stage_6.txt"
+    ]
+    
+    for index, path in enumerate(frame_paths):
+        try:
+            with open(path, 'r', encoding='utf-8') as file:
+                GALLOWS_FRAMES[index] = file.read()
+        except FileNotFoundError:
+            GALLOWS_FRAMES[index] = f"Frame {index} not found"
+
+def load_words():
+    global WORD_LIST, HINT_LIST
+    try:
+        with open('words.txt', 'r', encoding='utf-8') as file:
+            for line in file:
+                line = line.strip()
+                if line:
+                    parts = line.split(',')
+                    if len(parts) == 2:
+                        WORD_LIST.append(parts[0])
+                        HINT_LIST.append(parts[1])
+    except FileNotFoundError:
+        WORD_LIST = ['питон', 'программирование', 'алгоритм']
+        HINT_LIST = ['язык программирования', 'процесс создания программ', 'последовательность действий']
+
+def initialize_game():
+    global CURRENT_WORD, CURRENT_HINT, GUESSED_LETTERS, MISTAKES, GAME_OVER, GAME_WON
+    if WORD_LIST:
+        word_index = random.randint(0, len(WORD_LIST) - 1)
+        CURRENT_WORD = WORD_LIST[word_index]
+        CURRENT_HINT = HINT_LIST[word_index]
+    else:
+        CURRENT_WORD = 'python'
+        CURRENT_HINT = 'язык программирования'
+    
+    GUESSED_LETTERS = []
+    MISTAKES = 0
+    GAME_OVER = False
+    GAME_WON = False
+
+def display_gallows():
+    return GALLOWS_FRAMES.get(MISTAKES, 'Gallows frame not found')
+
+def display_word_state():
+    word_display = []
+    for letter in CURRENT_WORD:
+        if letter in GUESSED_LETTERS:
+            word_display.append(letter)
+        else:
+            word_display.append("_")
+    print(f'{" ".join(word_display)}')
+
+def display_hint():
+    print(f"Подсказка: {CURRENT_HINT}")
+
+def display_guessed_letters():
+    if GUESSED_LETTERS:
+        print(f'Использованные буквы: {', '.join(sorted(GUESSED_LETTERS))}')
+    print('Использованные буквы: ')
+
+def process_guess(guess):
+    global MISTAKES, GAME_OVER, GAME_WON
+    
+    if guess in GUESSED_LETTERS:
+        return "already_guessed"
+    
+    GUESSED_LETTERS.append(guess)
+    
+    if guess in CURRENT_WORD:
+        check_win()
+        return "correct"
+    else:
+        MISTAKES += 1
+        check_game_over()
+        return "incorrect"
+
+def check_win():
+    global GAME_WON, GAME_OVER
+    all_guessed = True
+    for letter in CURRENT_WORD:
+        if letter not in GUESSED_LETTERS:
+            all_guessed = False
+            break
+    
+    if all_guessed:
+        GAME_WON = True
+        GAME_OVER = True
+
+def check_game_over():
+    global GAME_OVER
+    if MISTAKES >= MAX_MISTAKES:
+        GAME_OVER = True
+
+def get_game_status():
+    return {
+        'game_over': GAME_OVER,
+        'game_won': GAME_WON,
+        'word': CURRENT_WORD,
+        'mistakes': MISTAKES,
+        'max_mistakes': MAX_MISTAKES
+    }
+
+def get_current_word():
+    return CURRENT_WORD
+def get_guessed_letters():
+    return GUESSED_LETTERS
+def enter_letter():
+    return input("\nВведите букву: ").lower()
+def letter_reapeated(t):
+    print(f"\nБуква '{t}' уже была использована!")
+def write_letter():
+    print("\nПожалуйста, введите одну букву!")
+def status_win(t):
+    print(f"\nПоздравляем! Вы угадали слово: {t}")
+def status_lose(t):
+    print(f"\nИгра окончена! Загаданное слово: {t}")
+def attempts(t, u):
+    print(f"\nОсталось попыток: {t - u}")
+
+from game_module import (
+    load_gallows_frames, load_words, initialize_game,
+    display_gallows, display_word_state, display_hint,
+    display_guessed_letters, process_guess, get_game_status,
+    get_current_word, get_guessed_letters, write_letter,
+    letter_reapeated, enter_letter, status_win, status_lose, attempts
+)
+
+load_gallows_frames()
+load_words()
+initialize_game()
+
+while True:
+    Status = get_game_status()
+            
+    if Status['game_over']:
+        if Status['game_won']:
+            print(display_gallows())
+            status_win(Status['word'])
+        else:
+            print(display_gallows())
+            status_lose(Status['word'])
+        break
+    print("\n" + "="*50)
+    print(display_gallows())
+    display_word_state()
+    display_hint()
+    display_guessed_letters()
+    attempts(Status['max_mistakes'], Status['mistakes'])
+             
+    guess = enter_letter()
+    if len(guess) == 1 and guess.isalpha():
+        result = process_guess(guess)
+        if result == "already_guessed":
+            letter_reapeated(guess)
+        else:
+            write_letter()
+
+_____________
+     |/      
+     |      
+     |      
+     |      
+     |      
+     |
+ ____|___
+_____________
+     |/      |
+     |      
+     |      
+     |      
+     |      
+     |
+ ____|___
+_____________
+     |/      |
+     |      (_)
+     |      
+     |      
+     |      
+     |
+ ____|___
+_____________
+     |/      |
+     |      (_)
+     |      \|
+     |      
+     |    
+     |
+ ____|___
+_____________
+     |/      |
+     |      (_)
+     |      \|/
+     |      
+     |      
+     |
+ ____|___
+_____________
+     |/      |
+     |      (_)
+     |      \|/
+     |       |
+     |      /
+     |
+ ____|___
+_____________
+     |/      |
+     |      (_)
+     |      \|/
+     |       |
+     |      / \
+     |
+ ____|___
+время,что идёт без ног?
+крапива,не огонь а жжется
+дождь,его ждут не дождутся когда увидят разбегутся
+лампочка,весит груша нельзя скушать
+стол,четыре брата под одной шляпой
+расческа,зубов много а ничего не ест
