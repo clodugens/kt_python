@@ -1,0 +1,75 @@
+isbn|title|author|quantity|price
+978-1-43545-500-9|Python Pr�gramming for the Absolute Beginner|Michael Dawson|10|18.90
+978-0-59600-372-2|XSLT Cookbook|Sal Mangano|15|34.60
+978-0-32168-056-3|Programming in Python 3|Mark Summerfield|8|27.28
+978-1-44935-573-9|Learning Python|Mark Lutz|21|34.20
+978-0-47178-597-2|Ajax For Dummies|Steve Holzner|32|11.80
+978-1-78439-700-5|Mastering Python Networking|Eric Chou|23|31.49
+978-8-59037-986-7|Programming in Lua|Roberto Ierusalimschy|12|37.10
+978-1-78439-658-9|Machine Learning in Java|Bostjan Kaluza|45|34.99
+
+import csv
+
+def get_books(filename):
+    """Задание 1: читает CSV и возвращает список списков с преобразованными типами."""
+    with open(filename, 'r', encoding='cp1251') as f:
+        reader = csv.reader(f, delimiter='|')
+        # Пропускаем заголовок
+        header = next(reader)
+        # Преобразуем данные: isbn, title, author, quantity(int), price(float)
+        return [header] + list(
+            map(lambda row: [
+                row[0],                     # isbn
+                row[1],                     # title
+                row[2],                     # author
+                int(row[3]),                # quantity
+                float(row[4])               # price
+            ], reader)
+        )
+
+def filtered_books(books, substring):
+    """Задание 2: фильтрует по substring в title, объединяя title и author."""
+    header = books[0]
+    # Новый заголовок: isbn, 'title, author', quantity, price
+    new_header = [header[0], 'title, author', header[3], header[4]]
+    
+    data = books[1:]
+    filtered = list(
+        filter(lambda row: substring.lower() in row[1].lower(), data)
+    )
+    
+    return [new_header] + list(
+        map(lambda row: [
+            row[0],                     # isbn
+            f"{row[1]}, {row[2]}",      # объединённые title и author
+            row[3],                     # quantity
+            row[4]                      # price
+        ], filtered)
+    )
+
+def calculate_total_values(filtered_books_list):
+    """Задание 3: возвращает список кортежей (isbn, quantity * price)."""
+    # Пропускаем заголовок
+    data = filtered_books_list[1:]
+    return list(
+        map(lambda row: (row[0], row[2] * row[3]), data)
+    )
+
+def show_result(msg):
+  print(msg)
+
+
+books = get_books("books.csv")
+show_result('Number 1')
+for row in books:
+  show_result(row)
+    
+filtered = filtered_books(books, "python")
+show_result('Number 2')
+for row in filtered:
+  show_result(row)
+    
+totals = calculate_total_values(filtered)
+show_result('Number 3')
+for item in totals:
+  show_result(item)
